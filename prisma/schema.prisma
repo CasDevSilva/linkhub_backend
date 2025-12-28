@@ -1,0 +1,62 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+// Models
+model User {
+    id          String   @id @default(cuid())
+    email       String   @unique
+    password    String
+    username    String   @unique  // para URL: /@username
+    displayName String?
+    bio         String?
+    avatar      String?
+    theme       String   @default("default") // default, dark, minimal, neon
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    links       Link[]
+    clicks      Click[]
+}
+
+model Link {
+    id        String   @id @default(cuid())
+    userId    String
+    title     String
+    url       String
+    icon      String?
+    order     Int      @default(0)
+    isActive  Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    clicks    Click[]
+
+    @@index([userId])
+}
+
+model Click {
+    id        String   @id @default(cuid())
+    linkId    String
+    userId    String   // dueño del link (para queries rápidas)
+    timestamp DateTime @default(now())
+    referrer  String?
+    userAgent String?
+    device    String?  // mobile, tablet, desktop
+    browser   String?
+    os        String?
+    country   String?
+    ipHash    String?  // hasheado para privacidad
+
+    link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([linkId])
+    @@index([userId])
+    @@index([timestamp])
+}
