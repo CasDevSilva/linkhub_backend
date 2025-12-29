@@ -1,88 +1,116 @@
 import { hashPassword } from "../utils/auth.js";
-import { createDBUser, getDBUserbyID, getDBUserByUsername, updateDBUser, updateDBUserTheme } from "../utils/database.js";
+import { createDBUser, getDBUserbyID, getDBUserByUsername, getDBUserByEmail, updateDBUser, updateDBUserTheme } from "../utils/database.js";
+import { validateEmail, validateUsername, validatePassword, sanitizeUser } from "../utils/validators.js";
 
-export const createUser =  async (request, response) => {
+const VALID_THEMES = ["default", "dark", "minimal", "neon"];
+
+export const createUser = async (req, res, next) => {
     try {
-        let mObjResponse = await createDBUser(request.body);
+        const { email, password, username } = req.body;
 
-        response.status(201);
-        return response.json(mObjResponse)
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        })
+        if (!email || !password || !username) {
+            return res.status(400).json({ error: "Email, password and username required" });
+        }
+
+        if (!validateEmail(email)) {
+            return res.status(400).json({ error: "Invalid email format" });
+        }
+
+        if (!validateUsername(username)) {
+            return res.status(400).json({ error: "Username must be 3-20 chars, alphanumeric and underscore only" });
+        }
+
+        if (!validatePassword(password)) {
+            return res.status(400).json({ error: "Password must be at least 6 characters" });
+        }
+
+        const existingEmail = await getDBUserByEmail(email);
+        if (existingEmail) {
+            return res.status(409).json({ error: "Email already registered" });
+        }
+
+        const existingUsername = await getDBUserByUsername(username);
+        if (existingUsername) {
+            return res.status(409).json({ error: "Username already taken" });
+        }
+
+        const user = await createDBUser(req.body);
+        res.status(201).json(user);
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-export const getUserByUsername = async (request, response) => {
+export const getUserByUsername = async (req, res, next) => {
     try {
-        const mObjUser = await getDBUserByUsername(request.params.username)
+        const user = await getDBUserByUsername(req.params.username);
 
-        response.status(200);
-        return response.json(mObjUser);
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        })
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json(sanitizeUser(user));
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-export const getUser = async (request, response) => {
+export const getUser = async (req, res, next) => {
     try {
-        const mObjUser = await getDBUserbyID(request.user.id)
+        const user = await getDBUserbyID(req.user.id);
 
-        response.status(200)
-        return response.json(mObjUser);
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json(sanitizeUser(user));
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-export const updateUser = async (request, response) => {
+export const updateUser = async (req, res, next) => {
     try {
-        if (request.body.username || request.body.id || request.body.createdAt || request.body.updatedAt) throw new Error("Not specify an attibute like this username, id, createdAt, updatedAt");
+        const forbidden = ["id", "username", "email", "createdAt", "updatedAt"];
+        const hasForbidden = forbidden.some(f => req.body[f] !== undefined);
 
-        if (request.body.password) request.body.password = await hashPassword(request.body.password);
+        if (hasForbidden) {
+            return res.status(400).json({ error: "Cannot modify id, username, email or timestamps" });
+        }
 
-        if (request.body.theme && !["default", "dark", "minimal", "neon"].includes(request.body.theme)) throw new Error(`Only specify only of each theme ["default", "dark", "minimal", "neon"]`);
+        if (req.body.password) {
+            if (!validatePassword(req.body.password)) {
+                return res.status(400).json({ error: "Password must be at least 6 characters" });
+            }
+            req.body.password = await hashPassword(req.body.password);
+        }
 
-        let mObjUser = await updateDBUser(request.user.id, request.body)
+        if (req.body.theme && !VALID_THEMES.includes(req.body.theme)) {
+            return res.status(400).json({ error: `Theme must be one of: ${VALID_THEMES.join(", ")}` });
+        }
 
-        response.status(200)
-        return response.json({
-            message: "User updated",
-            user: mObjUser
-        })
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        });
+        const user = await updateDBUser(req.user.id, req.body);
+        res.json({ message: "Profile updated", user: sanitizeUser(user) });
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-export const updateTheme = async (request, response) => {
+export const updateTheme = async (req, res, next) => {
     try {
-        if (!request.body.theme) throw new Error("Specify a theme");
+        const { theme } = req.body;
 
-        if (!["default", "dark", "minimal", "neon"].includes(request.body.theme)) throw new Error(`Only specify only of each theme ["default", "dark", "minimal", "neon"]`);
+        if (!theme) {
+            return res.status(400).json({ error: "Theme required" });
+        }
 
-        let mObjUser = await updateDBUserTheme(request.user.id, request.body.theme)
+        if (!VALID_THEMES.includes(theme)) {
+            return res.status(400).json({ error: `Theme must be one of: ${VALID_THEMES.join(", ")}` });
+        }
 
-        response.status(200)
-        return response.json({
-            message: "Theme updated",
-            user: mObjUser
-        });
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        });
+        const user = await updateDBUserTheme(req.user.id, theme);
+        res.json({ message: "Theme updated", user });
+    } catch (error) {
+        next(error);
     }
-}
+};
