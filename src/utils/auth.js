@@ -2,37 +2,38 @@ import bcryptjs from "bcryptjs";
 import jsonwebtoken from "jsonwebtoken";
 import "dotenv/config";
 
-export const hashPassword = async (pStrPassword) => {
-    const mIntSaltRounds = 2;
-    const mStrPassword = await bcryptjs.hash(pStrPassword, mIntSaltRounds);
+const SALT_ROUNDS = 10;
 
-    return mStrPassword;
-}
+export const hashPassword = async (password) => {
+    return bcryptjs.hash(password, SALT_ROUNDS);
+};
 
-export const samePassword = async (pStrInputPassword, pStrPassword) => {
-    const mBoolSamePwd = await bcryptjs.compare(pStrInputPassword, pStrPassword);
-    return mBoolSamePwd;
-}
+export const samePassword = async (inputPassword, hashedPassword) => {
+    return bcryptjs.compare(inputPassword, hashedPassword);
+};
 
-export const generateJWT = async (pObjUser) => {
-    const mStrToken = jsonwebtoken.sign(
-        pObjUser,
-        process.env["JWT_SECRET"],
-        { expiresIn: '1h'}
+export const generateJWT = (payload) => {
+    return jsonwebtoken.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
+};
 
-    return mStrToken;
-}
+export const verifyTokenJWT = (req, res, next) => {
+    const authHeader = req.headers.authorization;
 
-export const verifyTokenJWT = async (request, response, next) => {
-    const mStrToken = request.headers['authorization']?.split(' ')[1];
+    if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Token required" });
+    }
 
-    if (!mStrToken) return response.status(403).send("Token requerido");
+    const token = authHeader.split(" ")[1];
 
-    jsonwebtoken.verify(mStrToken, process.env["JWT_SECRET"], (err, decoded) => {
-        if (err) return response.status(401).send("Token inválido");
-
-        request.user = decoded
+    try {
+        const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
         next();
-    })
-}
+    } catch (err) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+    }
+};
