@@ -1,35 +1,39 @@
 import { generateJWT, samePassword } from "../utils/auth.js";
 import { getDBUserByUsername } from "../utils/database.js";
+import { sanitizeUser } from "../utils/validators.js";
 
-export async function loginUser(request, response) {
+export const loginUser = async (req, res, next) => {
     try {
-        let mObjUser = await getDBUserByUsername(request.body.username);
+        const { username, password } = req.body;
 
-        if (mObjUser) {
-            let mBoolSamePwd = await samePassword(request.body.password, mObjUser.password);
-
-            if (!mBoolSamePwd) {
-                throw new Error("Contraseña incorrecta.")
-            }
-
-            let mStrToken = await generateJWT({
-                id: mObjUser.id,
-                email: mObjUser.email,
-                username: mObjUser.username
-            })
-
-            response.status(200)
-            return response.json({
-                message: "Login correcto.",
-                token: mStrToken
-            });
-        } else {
-            throw new Error("Usuario inexistente.")
+        if (!username || !password) {
+            return res.status(400).json({ error: "Username and password required" });
         }
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
+
+        const user = await getDBUserByUsername(username);
+
+        if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        const isValid = await samePassword(password, user.password);
+
+        if (!isValid) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        const token = generateJWT({
+            id: user.id,
+            email: user.email,
+            username: user.username
         });
+
+        res.json({
+            message: "Login successful",
+            token,
+            user: sanitizeUser(user)
+        });
+    } catch (error) {
+        next(error);
     }
-}
+};
