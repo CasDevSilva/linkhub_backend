@@ -12,6 +12,9 @@ package-lock.json
 .env.test
 .env.production
 
+# Prisma
+src/generated
+
 # Logs
 logs
 *.log
