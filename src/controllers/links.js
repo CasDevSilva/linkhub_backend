@@ -1,73 +1,96 @@
-import { createDBLink, deleteDBLink, getDBLink, updateDBLink } from "../utils/database"
+import { createDBLink, deleteDBLink, getDBLinks, getDBLinkById, updateDBLink, reorderDBLinks } from "../utils/database.js";
+import { validateUrl } from "../utils/validators.js";
 
-export const getLink = async (request, response)  =>{
+export const getLinks = async (req, res, next) => {
     try {
-        let mArrLinks = await getDBLink(request.user.id);
+        const links = await getDBLinks(req.user.id);
+        res.json({ links });
+    } catch (error) {
+        next(error);
+    }
+};
 
-        response.status(200);
-        return response.json({
-            links: mArrLinks
+export const createLink = async (req, res, next) => {
+    try {
+        const { title, url } = req.body;
+
+        if (!title || !url) {
+            return res.status(400).json({ error: "Title and URL required" });
+        }
+
+        if (!validateUrl(url)) {
+            return res.status(400).json({ error: "Invalid URL format" });
+        }
+
+        const link = await createDBLink({
+            ...req.body,
+            userId: req.user.id
         });
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        })
-    }
-}
 
-export const createLink = async (request, response) =>{
+        res.status(201).json(link);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateLink = async (req, res, next) => {
     try {
-        request.body.userId = request.user.id;
+        const { id } = req.params;
 
-        let mObjLink = await createDBLink(request.body)
+        const existing = await getDBLinkById(id);
+        if (!existing) {
+            return res.status(404).json({ error: "Link not found" });
+        }
 
-        response.status(200);
-        return response.json(mObjLink);
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        })
+        if (existing.userId !== req.user.id) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        if (req.body.url && !validateUrl(req.body.url)) {
+            return res.status(400).json({ error: "Invalid URL format" });
+        }
+
+        const forbidden = ["id", "userId", "createdAt"];
+        forbidden.forEach(f => delete req.body[f]);
+
+        const link = await updateDBLink(req.user.id, id, req.body);
+        res.json(link);
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-export const updateLink = async (request, response) => {
+export const deleteLink = async (req, res, next) => {
     try {
-        const mObjUpdLink = await updateDBLink(request.user.id, request.params.id, request.body)
+        const { id } = req.params;
 
-        response.status(200);
-        return response.json(mObjUpdLink);
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        })
+        const existing = await getDBLinkById(id);
+        if (!existing) {
+            return res.status(404).json({ error: "Link not found" });
+        }
+
+        if (existing.userId !== req.user.id) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        await deleteDBLink(req.user.id, id);
+        res.json({ message: "Link deleted" });
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-export const deleteLink = async (request, response)  => {
+export const reorderLinks = async (req, res, next) => {
     try {
-        const mObjDelLink = await deleteDBLink(request.user.id, request.params.id)
+        const { orderedIds } = req.body;
 
-        response.status(200);
-        return response.json(mObjDelLink);
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        });
+        if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+            return res.status(400).json({ error: "orderedIds array required" });
+        }
+
+        const links = await reorderDBLinks(req.user.id, orderedIds);
+        res.json({ message: "Links reordered", links });
+    } catch (error) {
+        next(error);
     }
-}
-
-// pending
-export const reorderLinks = (request, response) => {
-    try {
-
-    } catch(error) {
-        response.status(400)
-        return response.json({
-            error: error.message
-        })
-    }
-}
+};
