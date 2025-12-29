@@ -2,10 +2,10 @@ import { Router } from "express";
 import { getUserByUsername, updateTheme, updateUser } from "../controllers/users.js";
 import { verifyTokenJWT } from "../utils/auth.js";
 
-const userRouter = Router();
+const router = Router();
 
-userRouter.get("/:username", getUserByUsername); // done
-userRouter.put("/profile", verifyTokenJWT, updateUser); // done
-userRouter.put("/theme", verifyTokenJWT, updateTheme); // done
+router.put("/profile", verifyTokenJWT, updateUser);
+router.put("/theme", verifyTokenJWT, updateTheme);
+router.get("/:username", getUserByUsername);
 
-export default userRouter;
+export default router;

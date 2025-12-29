@@ -3,10 +3,10 @@ import { loginUser } from "../controllers/auth.js";
 import { createUser, getUser } from "../controllers/users.js";
 import { verifyTokenJWT } from "../utils/auth.js";
 
-const authRouter = Router();
+const router = Router();
 
-authRouter.post("/register",createUser); // done
-authRouter.post("/login", loginUser); // done
-authRouter.get("/me", verifyTokenJWT, getUser); // done
+router.post("/register", createUser);
+router.post("/login", loginUser);
+router.get("/me", verifyTokenJWT, getUser);
 
-export default authRouter;
+export default router;
