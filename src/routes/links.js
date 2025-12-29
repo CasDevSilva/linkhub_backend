@@ -1,13 +1,15 @@
 import { Router } from "express";
-import { createLink, deleteLink, getLink, reorderLinks, updateLink } from "../controllers/links.js";
+import { getLinks, createLink, updateLink, deleteLink, reorderLinks } from "../controllers/links.js";
 import { verifyTokenJWT } from "../utils/auth.js";
 
-const linksRouter = Router();
+const router = Router();
 
-linksRouter.get("/", verifyTokenJWT, getLink); // done
-linksRouter.post("/", verifyTokenJWT,createLink); // done
-linksRouter.put("/:id", verifyTokenJWT,updateLink); // done
-linksRouter.delete("/:id", verifyTokenJWT, deleteLink);// done
-linksRouter.put("/reorder", verifyTokenJWT, reorderLinks);
+router.use(verifyTokenJWT);
 
-export default linksRouter;
+router.get("/", getLinks);
+router.post("/", createLink);
+router.put("/reorder", reorderLinks);
+router.put("/:id", updateLink);
+router.delete("/:id", deleteLink);
+
+export default router;

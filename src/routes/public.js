@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { getPublicUserInformation } from "../controllers/public.js";
+import { getPublicProfile } from "../controllers/public.js";
 
-const publicRouter = Router();
+const router = Router();
 
-publicRouter.get("", getPublicUserInformation)
+router.get("", getPublicProfile);
 
-export default publicRouter;
+export default router;

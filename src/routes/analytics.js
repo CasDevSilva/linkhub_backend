@@ -1,12 +1,14 @@
 import { Router } from "express";
-import { createClick, getClicks, getDevices, getReferrers, overviewAnalytics } from "../controllers/analytics.js";
+import { getOverview, getClicks, getDevices, getReferrers } from "../controllers/analytics.js";
+import { verifyTokenJWT } from "../utils/auth.js";
 
-const analyticRouter = Router();
+const router = Router();
 
-analyticRouter.post("/:linkId", createClick);
-analyticRouter.get("/overview", overviewAnalytics);
-analyticRouter.get("/clicks", getClicks);
-analyticRouter.get("/devices", getDevices);
-analyticRouter.get("/referrers", getReferrers);
+router.use(verifyTokenJWT);
 
-export default analyticRouter;
+router.get("/overview", getOverview);
+router.get("/clicks", getClicks);
+router.get("/devices", getDevices);
+router.get("/referrers", getReferrers);
+
+export default router;
