@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createLink, deleteLink, getLink, reorderLinks, updateLink } from "../controllers/Links";
+import { createLink, deleteLink, getLink, reorderLinks, updateLink } from "../controllers/links.js";
 
 const linksRouter = Router();
 

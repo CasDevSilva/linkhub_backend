@@ -1,11 +1,11 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import authRouter from "./routes/auth";
-import userRouter from "./routes/users";
-import linksRouter from "./routes/links";
-import analyticRouter from "./routes/analytics";
-import publicRouter from "./routes/public";
+import authRouter from "./routes/auth.js";
+import userRouter from "./routes/users.js";
+import linksRouter from "./routes/links.js";
+import analyticRouter from "./routes/analytics.js";
+import publicRouter from "./routes/public.js";
 
 const app = express();
 

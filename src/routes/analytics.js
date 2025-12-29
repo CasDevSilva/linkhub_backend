@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createClick, getClicks, getDevices, getReferrers, overviewAnalytics } from "../controllers/Analytics";
+import { createClick, getClicks, getDevices, getReferrers, overviewAnalytics } from "../controllers/analytics.js";
 
 const analyticRouter = Router();
 

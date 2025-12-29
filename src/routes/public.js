@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPublicUserInformation } from "../controllers/public";
+import { getPublicUserInformation } from "../controllers/public.js";
 
 const publicRouter = Router();
 
